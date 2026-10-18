@@ -85,6 +85,7 @@ apt-get update -y
 
 APT_PACKAGES=(
     build-essential
+    gfortran
     pkg-config
     libsqlite3-dev
     sqlite3
@@ -100,6 +101,8 @@ APT_PACKAGES=(
     python3
     python3-pip
     python3-venv
+    libopenblas-dev
+    liblapack-dev
 )
 
 # Also check for nodejs and golang-go if not already present
@@ -208,21 +211,42 @@ log_step "Step 5: Installing Python CLI & MCP Tools System-wide via uv"
 PYTHON_TOOLS=(
     "serena-agent"
     "mcp-server-codetree"
-    "aider-chat"
     "python-lsp-server"
+    "aider-chat"
 )
 
-# We use uv tool install with --root /usr/local or create dedicated system venv at /opt/indexing-python-tools
+# Detect host Python version.
+# For Python >= 3.14, scientific packages like scipy (dependency of aider-chat)
+# lack prebuilt wheels on PyPI and fail without gfortran. UV can manage a stable
+# Python 3.12 runtime automatically to guarantee binary wheel installation.
+TARGET_PYTHON="python3"
+SYS_PY_VER="$(python3 -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")' 2>/dev/null || echo "unknown")"
+
+if python3 -c 'import sys; sys.exit(0 if sys.version_info >= (3, 14) else 1)' 2>/dev/null; then
+    log_info "Detected Python ${SYS_PY_VER}. Prebuilt wheels for native packages (e.g., scipy) may be unavailable."
+    log_info "Using uv managed Python 3.12 for /opt/indexing-python-tools to guarantee fast binary wheel installation."
+    TARGET_PYTHON="3.12"
+fi
+
 SYSTEM_VENV="/opt/indexing-python-tools"
 mkdir -p "${SYSTEM_VENV}"
-uv venv "${SYSTEM_VENV}" --python python3
 
+log_info "Creating virtual environment at ${SYSTEM_VENV} using Python (${TARGET_PYTHON})..."
+if ! uv venv "${SYSTEM_VENV}" --python "${TARGET_PYTHON}"; then
+    log_warn "Failed to create venv with Python ${TARGET_PYTHON}. Falling back to system python3..."
+    uv venv "${SYSTEM_VENV}" --python python3
+fi
+
+# Install packages individually with error isolation so one failure does not block the rest
 log_info "Installing Python indexing tools in ${SYSTEM_VENV}..."
-uv pip install --python "${SYSTEM_VENV}/bin/python" \
-    serena-agent \
-    mcp-server-codetree \
-    aider-chat \
-    python-lsp-server
+for pkg in "${PYTHON_TOOLS[@]}"; do
+    log_info "Installing ${pkg}..."
+    if uv pip install --python "${SYSTEM_VENV}/bin/python" "${pkg}"; then
+        log_success "Successfully installed ${pkg}"
+    else
+        log_warn "Failed to install ${pkg}. Continuing with remaining tools..."
+    fi
+done
 
 # Symlink executables into /usr/local/bin
 log_info "Creating symlinks in /usr/local/bin for all users..."
@@ -230,6 +254,8 @@ for bin_name in serena codetree aider pylsp; do
     if [[ -f "${SYSTEM_VENV}/bin/${bin_name}" ]]; then
         ln -sf "${SYSTEM_VENV}/bin/${bin_name}" "/usr/local/bin/${bin_name}"
         log_success "Symlinked ${bin_name} -> /usr/local/bin/${bin_name}"
+    else
+        log_warn "Binary ${bin_name} was not generated in ${SYSTEM_VENV}/bin. Skipping symlink."
     fi
 done
 
