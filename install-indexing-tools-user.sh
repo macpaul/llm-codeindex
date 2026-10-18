@@ -92,10 +92,17 @@ fi
 # 5. Python CLI tools via uv tool
 log_step "Step 5: Installing Python tools (serena, codetree, aider, pylsp)"
 export PATH="${LOCAL_BIN}:$PATH"
-uv tool install serena-agent || true
-uv tool install mcp-server-codetree || true
-uv tool install aider-chat || true
-uv tool install python-lsp-server || true
+
+UV_PY_ARG=()
+if python3 -c 'import sys; sys.exit(0 if sys.version_info >= (3, 14) else 1)' 2>/dev/null; then
+    log_info "Detected host Python >= 3.14. Using uv managed Python 3.12 for prebuilt binary wheels."
+    UV_PY_ARG=(--python 3.12)
+fi
+
+uv tool install "${UV_PY_ARG[@]}" serena-agent || true
+uv tool install "${UV_PY_ARG[@]}" mcp-server-codetree || true
+uv tool install "${UV_PY_ARG[@]}" python-lsp-server || true
+uv tool install "${UV_PY_ARG[@]}" aider-chat || true
 
 # 6. Go tools
 log_step "Step 6: Installing Go indexing tools"
