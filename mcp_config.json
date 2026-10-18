@@ -1,0 +1,24 @@
+{
+  "mcpServers": {
+    "toktoken": {
+      "command": "toktoken",
+      "args": ["serve"],
+      "description": "C-native symbol search & indexing with 88-99% token savings"
+    },
+    "codetree": {
+      "command": "codetree",
+      "args": ["--root", "."],
+      "description": "23 structured code navigation tools across 11 languages using Tree-sitter AST"
+    },
+    "serena": {
+      "command": "serena",
+      "args": ["start-mcp-server"],
+      "description": "Full IDE-grade Language Server Protocol (LSP) semantic refactoring for 40+ languages"
+    },
+    "rust-analyzer": {
+      "command": "rust-analyzer-mcp",
+      "args": [],
+      "description": "Low-latency synchronous channel Rust language server MCP"
+    }
+  }
+}
