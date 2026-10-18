@@ -23,9 +23,16 @@ check_tool() {
     if command -v "$cmd" >/dev/null 2>&1; then
         local bin_path
         bin_path="$(command -v "$cmd")"
-        local ver
-        ver="$("$cmd" $version_arg 2>&1 | head -n 1 | tr -d '\r' | cut -c 1-30)"
-        printf "%-25s ${GREEN}%-10s${NC} %-35s %-30s\n" "$name" "[PASS]" "$bin_path" "$ver"
+        local raw_output
+        raw_output="$("$cmd" $version_arg 2>&1 || true)"
+        if [[ "$raw_output" == *"Permission denied"* || "$raw_output" == *"bad interpreter"* ]]; then
+            printf "%-25s ${RED}%-10s${NC} %-35s %-30s\n" "$name" "[PERM ERR]" "$bin_path" "Permission Denied"
+        else
+            local ver
+            ver="$(echo "$raw_output" | head -n 1 | tr -d '\r' | cut -c 1-30)"
+            [[ -z "$ver" ]] && ver="Installed"
+            printf "%-25s ${GREEN}%-10s${NC} %-35s %-30s\n" "$name" "[PASS]" "$bin_path" "$ver"
+        fi
     else
         printf "%-25s ${RED}%-10s${NC} %-35s %-30s\n" "$name" "[MISSING]" "Not found in PATH" "-"
     fi
@@ -45,7 +52,8 @@ check_tool "Pyright (Python)" "pyright" "--version"
 check_tool "Python LSP (pylsp)" "pylsp" "--version"
 check_tool "Gopls (Go)" "gopls" "version"
 check_tool "Rust Analyzer (Rust)" "rust-analyzer" "--version"
-check_tool "TypeScript Server" "tsserver" "--version"
+check_tool "TypeScript (tsc)" "tsc" "--version"
+check_tool "TypeScript LSP" "typescript-language-server" "--version"
 check_tool "vtsls (TS LSP)" "vtsls" "--version"
 check_tool "Serena MCP (Multi)" "serena" "--help"
 check_tool "rust-analyzer-mcp" "rust-analyzer-mcp" "--help"
