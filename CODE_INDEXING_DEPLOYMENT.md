@@ -243,3 +243,17 @@ sudo ./deploy-indexing-tools.sh
 # 3. For non-root environments (Installs to ~/.local/bin and ~/go/bin):
 ./install-indexing-tools-user.sh
 ```
+
+---
+
+## 9. Troubleshooting & Platform Notes
+
+### 9.1 Python 3.14 & Native Wheels (`scipy` / `gfortran`)
+On cutting-edge Ubuntu distributions (e.g., Ubuntu 26.04) running **Python 3.14+**, native scientific libraries (such as `scipy`, a dependency of `aider-chat`) may not yet have pre-compiled binary wheels (`.whl`) published to PyPI.
+
+* **Symptom**: `uv pip install` fails with `Call to mesonpy.build_wheel failed` and `ERROR: Unknown compiler(s): [['gfortran']...]`.
+* **Fix implemented in scripts**:
+  1. The deployment scripts automatically detect Python `>= 3.14` and instruct `uv` to provision a managed, isolated Python 3.12 environment for the indexing tools (`uv venv --python 3.12`). This allows immediate installation of pre-compiled wheels without any local compilation.
+  2. `gfortran`, `libopenblas-dev`, and `liblapack-dev` are also included in Ubuntu `apt` packages should local compilation of scientific extensions be required.
+  3. Python tools are decoupled during installation so a build failure in an optional tool like `aider-chat` does not prevent `serena`, `codetree`, or `pylsp` from being installed and symlinked.
+
