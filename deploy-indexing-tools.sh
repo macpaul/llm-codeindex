@@ -103,6 +103,8 @@ APT_PACKAGES=(
     python3-venv
     libopenblas-dev
     liblapack-dev
+    cargo
+    rustc
 )
 
 # Also check for nodejs and golang-go if not already present
@@ -215,21 +217,39 @@ PYTHON_TOOLS=(
     "aider-chat"
 )
 
+# Crucial: UV installs Python interpreters to ~/.local/share/uv by default.
+# When run as root with sudo, this installs to /root/.local/share/uv (permissions 700),
+# causing "bad interpreter: Permission denied" for regular users.
+# We explicitly set UV_PYTHON_INSTALL_DIR to /opt/uv-python (permissions 755).
+export UV_PYTHON_INSTALL_DIR="/opt/uv-python"
+mkdir -p "${UV_PYTHON_INSTALL_DIR}"
+chmod 755 "${UV_PYTHON_INSTALL_DIR}"
+
+SYSTEM_VENV="/opt/indexing-python-tools"
+
+# If an existing venv has a python symlink pointing to /root, remove and recreate it
+if [[ -L "${SYSTEM_VENV}/bin/python" ]]; then
+    current_target="$(readlink -f "${SYSTEM_VENV}/bin/python" 2>/dev/null || true)"
+    if [[ "${current_target}" == /root/* ]]; then
+        log_info "Detected existing venv pointing to restricted /root directory (${current_target}). Recreating..."
+        rm -rf "${SYSTEM_VENV}"
+    fi
+fi
+mkdir -p "${SYSTEM_VENV}"
+
 # Detect host Python version.
 # For Python >= 3.14, scientific packages like scipy (dependency of aider-chat)
-# lack prebuilt wheels on PyPI and fail without gfortran. UV can manage a stable
+# lack prebuilt wheels on PyPI and fail without gfortran. UV will manage a stable
 # Python 3.12 runtime automatically to guarantee binary wheel installation.
 TARGET_PYTHON="python3"
 SYS_PY_VER="$(python3 -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")' 2>/dev/null || echo "unknown")"
 
 if python3 -c 'import sys; sys.exit(0 if sys.version_info >= (3, 14) else 1)' 2>/dev/null; then
     log_info "Detected Python ${SYS_PY_VER}. Prebuilt wheels for native packages (e.g., scipy) may be unavailable."
-    log_info "Using uv managed Python 3.12 for /opt/indexing-python-tools to guarantee fast binary wheel installation."
+    log_info "Installing managed Python 3.12 into ${UV_PYTHON_INSTALL_DIR} for all users..."
+    uv python install 3.12
     TARGET_PYTHON="3.12"
 fi
-
-SYSTEM_VENV="/opt/indexing-python-tools"
-mkdir -p "${SYSTEM_VENV}"
 
 log_info "Creating virtual environment at ${SYSTEM_VENV} using Python (${TARGET_PYTHON})..."
 if ! uv venv "${SYSTEM_VENV}" --python "${TARGET_PYTHON}"; then
@@ -247,6 +267,9 @@ for pkg in "${PYTHON_TOOLS[@]}"; do
         log_warn "Failed to install ${pkg}. Continuing with remaining tools..."
     fi
 done
+
+# Ensure world-read and world-execute permissions across /opt/indexing-python-tools and /opt/uv-python
+chmod -R a+rX "${SYSTEM_VENV}" "${UV_PYTHON_INSTALL_DIR}" 2>/dev/null || true
 
 # Symlink executables into /usr/local/bin
 log_info "Creating symlinks in /usr/local/bin for all users..."
@@ -277,8 +300,14 @@ log_info "Compiling scip-go..."
 go install github.com/scip-code/scip-go/cmd/scip-go@latest || log_warn "scip-go install failed"
 
 # 6.3 scip-search (High-speed SCIP query CLI)
-log_info "Compiling scip-search..."
-go install github.com/liza-mas/scip-search/cmd/scip-search@latest || log_warn "scip-search install failed"
+log_info "Building scip-search from source..."
+if git clone --depth 1 https://github.com/liza-mas/scip-search.git "${TEMP_DIR}/scip-search-src" 2>/dev/null; then
+    (cd "${TEMP_DIR}/scip-search-src" && go build -o "${TEMP_DIR}/scip-search" ./cmd/scip-search)
+    install -m 755 "${TEMP_DIR}/scip-search" /usr/local/bin/scip-search
+    log_success "Installed scip-search: /usr/local/bin/scip-search"
+else
+    log_warn "scip-search git clone or build failed"
+fi
 
 # Copy compiled Go binaries to /usr/local/bin
 if [[ -d "${GOPATH}/bin" ]]; then
@@ -298,6 +327,10 @@ log_step "Step 7: Installing Rust Indexing Tools"
 if command -v cargo >/dev/null 2>&1; then
     log_info "Cargo detected. Compiling rust-analyzer-mcp..."
     cargo install --root /usr/local rust-analyzer-mcp || log_warn "rust-analyzer-mcp cargo build skipped"
+    if [[ -f "/usr/local/bin/rust-analyzer-mcp" ]]; then
+        chmod 755 /usr/local/bin/rust-analyzer-mcp
+        log_success "Installed rust-analyzer-mcp: /usr/local/bin/rust-analyzer-mcp"
+    fi
 else
     log_warn "Rust/Cargo is not installed on this system. Skipping cargo crates."
     log_info "Tip: Install rustup if you wish to compile rust-analyzer-mcp and coderlm: curl https://sh.rustup.rs -sSf | sh"
