@@ -15,6 +15,7 @@ This repository provides an enterprise-ready code indexing suite and AI agent sk
 | [**install-skills.sh**](file:///home/macpaul/coding-index-for-llm/install-skills.sh) | Installs skills into workspace `.agents/skills/` and global CLI configurations. |
 | [**mcp_config.json**](file:///home/macpaul/coding-index-for-llm/mcp_config.json) | Ready-to-use Model Context Protocol (MCP) server definitions. |
 | [**skills/**](file:///home/macpaul/coding-index-for-llm/skills/) | Modular suite of 7 AI coding skills for CLI agents. |
+| [**LICENSE**](file:///home/macpaul/coding-index-for-llm/LICENSE) | GNU Affero General Public License v3.0 (AGPL-3.0). |
 
 ---
 
@@ -48,3 +49,9 @@ The repository converts the indexing ecosystem into 7 production skills located 
 5. [**`serena-lsp`**](file:///home/macpaul/coding-index-for-llm/skills/serena-lsp/SKILL.md): Compiler-grade semantic refactoring, find references, and diagnostics for 40+ languages.
 6. [**`scip-code-graph`**](file:///home/macpaul/coding-index-for-llm/skills/scip-code-graph/SKILL.md): Protobuf code graph generation and sub-millisecond lookups via `scip-search`.
 7. [**`language-lsp-tools`**](file:///home/macpaul/coding-index-for-llm/skills/language-lsp-tools/SKILL.md): Language-specific deep indexing runbook (Pyright, clangd, rust-analyzer, gopls, vtsls).
+ 
+---
+
+## 📄 License
+
+This project is licensed under the terms of the [GNU Affero General Public License v3.0 (AGPL-3.0)](file:///home/macpaul/coding-index-for-llm/LICENSE).
