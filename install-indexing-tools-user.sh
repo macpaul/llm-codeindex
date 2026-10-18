@@ -109,7 +109,9 @@ log_step "Step 6: Installing Go indexing tools"
 if command -v go >/dev/null 2>&1; then
     go install golang.org/x/tools/gopls@latest || true
     go install github.com/scip-code/scip-go/cmd/scip-go@latest || true
-    go install github.com/liza-mas/scip-search/cmd/scip-search@latest || true
+    if git clone --depth 1 https://github.com/liza-mas/scip-search.git "${TEMP_DIR}/scip-search-src" 2>/dev/null; then
+        (cd "${TEMP_DIR}/scip-search-src" && go build -o "${LOCAL_BIN}/scip-search" ./cmd/scip-search)
+    fi
     GOBIN_DIR="$(go env GOPATH)/bin"
     if [[ -d "${GOBIN_DIR}" ]]; then
         for f in "${GOBIN_DIR}"/*; do
