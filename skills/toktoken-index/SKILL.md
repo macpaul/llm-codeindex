@@ -1,66 +1,94 @@
 ---
 name: toktoken-index
-description: >-
-  Provides instructions and workflows for using TokToken to index and search codebases
-  (especially C, C++, Python, Go, and multi-language projects) saving 88%-99% tokens on
-  symbol lookups, call hierarchy, and import graphs.
+description: Lifecycle management and indexing engine for TokToken. Detects codebases, builds hash-based incremental indexes, clones and indexes GitHub repositories, manages cache and project registries, and launches the MCP stdio server.
 ---
 
-# TokToken: High-Performance Symbol & Code Indexer
+# TokToken: Codebase Indexing & Lifecycle Management
 
-TokToken is a single-binary, C-native indexing tool built on top of `universal-ctags` and SQLite FTS5. It indexes 49 languages without modifying project files, storing all indexes under `~/.cache/toktoken/`.
+TokToken is a single-binary, C-native indexing tool built on top of `universal-ctags` and SQLite FTS5. It indexes 49 programming languages in seconds without modifying project files, storing all indexes under `~/.cache/toktoken/`.
 
 ## When to Use This Skill
-* Exploring unfamiliar codebases (especially C/C++, Go, Python, PHP, Java).
-* Finding specific functions, classes, structs, or methods without reading massive files into the prompt.
-* Tracing symbol dependencies, callers, dead code, or blast radiuses.
+* Use when initializing or onboarding an AI coding agent (Claude Code, Antigravity, Cursor, Codex) onto an unfamiliar local or remote codebase.
+* Use to detect whether a workspace contains supported source code and requires indexing.
+* Use to perform hash-based incremental re-indexing after modifying or adding files.
+* Use to clone and immediately index a public GitHub repository without manual git clone overhead.
+* Use to inspect global indexing statistics, list all cached projects, or clear caches.
+* Use to launch or configure TokToken's stdio Model Context Protocol (MCP) server.
 
-## Workflow & Commands
+## Indexing CLI Commands
 
-### 1. Index the Codebase
-Index once at project initialization. Re-indexing is incremental and hash-based:
+### 1. Codebase Detection
+Quickly detect whether a target folder is a code repository and check index status:
 ```bash
+toktoken codebase:detect .
+# Outputs JSON: {"is_codebase":true, "has_index":false, "action":"index:create"}
+```
+
+### 2. Create Project Index
+Index the codebase. Creates an optimized SQLite FTS5 database in `~/.cache/toktoken/`:
+```bash
+# Index current directory
 toktoken index:create
+
+# Index specific project directory
+toktoken index:create /path/to/project
+
+# Index with language filter and max file limits
+toktoken index:create --languages python,go,rust -m 50000
+
+# Full indexing (disable smart filters)
+toktoken index:create --full
+
+# Index with diagnostic telemetry (JSONL to stderr)
+toktoken index:create -X
 ```
 
-### 2. Search Symbols by Name
-Find functions, classes, and methods with relevance scoring and centrality ranking:
+### 3. Incremental Index Update
+Re-index only modified files using fast content hash comparison:
 ```bash
-toktoken search:symbols "auth" -ck class,method,function
-```
-* Use `-c` for compact output to minimize token output.
-* Use `-k` to filter by symbol kinds: `function`, `method`, `class`, `struct`, `interface`, `typedef`.
+# Update existing index in milliseconds
+toktoken index:update
 
-### 3. Inspect Exact Symbol Implementation
-Retrieve only the implementation code of the target symbol:
+# Reindex a single modified file
+toktoken index:file src/controller/auth.go
+```
+
+### 4. Index Remote GitHub Repositories
+Clone and immediately index any GitHub repository into cache for instant agent analysis:
 ```bash
-toktoken inspect:symbol "src/auth.c::auth_verify_token#function"
+# Clone and index remote repository
+toktoken index:github mauriziofonte/toktoken
+
+# List all cloned GitHub repositories
+toktoken repos:list
+
+# Remove a specific cloned repository
+toktoken repos:remove mauriziofonte/toktoken
+
+# Clear all cloned repositories
+toktoken repos:clear
 ```
 
-### 4. File Outline (Cheaper than Reading Files)
-Inspect the high-level outline and hierarchy of a file:
+### 5. Statistics & Cache Management
 ```bash
-toktoken inspect:outline src/server.c
+# Show current project index stats (file count, symbol count, kinds, languages)
+toktoken stats
+
+# List all indexed projects in the local cache
+toktoken projects:list
+
+# Clear the index cache for the current or all projects
+toktoken cache:clear
 ```
 
-### 5. Dependency & Call Graph Tracing
-```bash
-# Find callers of a symbol
-toktoken find:callers "src/db.c::db_connect#function"
+## MCP Server Integration (Claude Code, Antigravity, Cursor, Codex)
 
-# Find importers of a module
-toktoken find:importers src/config.h
-
-# Analyze blast radius of changes
-toktoken analyze:blast-radius src/core.c
-```
-
-### 6. MCP Server Mode
-To attach TokToken as an interactive MCP server for AI coding agents:
+TokToken natively implements the Model Context Protocol (MCP) exposing 27 tools over stdio:
 ```bash
 toktoken serve
 ```
-Add to `mcp_config.json`:
+
+### Global MCP Configuration (`mcp_config.json`)
 ```json
 {
   "mcpServers": {
@@ -71,3 +99,8 @@ Add to `mcp_config.json`:
   }
 }
 ```
+
+## Performance & Token Economy
+* **Index Speed**: 10,000 files parsed in ~1–2 seconds. Linux kernel (7.4M symbols) in ~170s.
+* **Storage**: Completely non-invasive; zero files created in project workspace.
+* **Output Economy**: Default compact JSON minimizes context footprint.
