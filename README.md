@@ -40,18 +40,24 @@ sudo ./deploy-indexing-tools.sh
 
 ## 🧠 AI Coding Skills Suite
 
-The repository converts the indexing ecosystem into 7 production skills located in `skills/` and `.agents/skills/`:
+The repository converts the indexing ecosystem into 10 production skills located in `skills/` and active across **Claude Code, Google Antigravity, Cursor, and Codex**:
 
-1. [**`code-indexing-advisor`**](file:///home/macpaul/coding-index-for-llm/skills/code-indexing-advisor/SKILL.md): Automatically analyzes project structure, detects languages, and recommends optimal 3-tier indexing.
-2. [**`toktoken-index`**](file:///home/macpaul/coding-index-for-llm/skills/toktoken-index/SKILL.md): High-speed C-native symbol and caller indexing (88%–99% token savings).
-3. [**`repomix-packer`**](file:///home/macpaul/coding-index-for-llm/skills/repomix-packer/SKILL.md): Tree-sitter AST signature compression (`--compress`) cutting context by 60%–90%.
-4. [**`codetree-navigator`**](file:///home/macpaul/coding-index-for-llm/skills/codetree-navigator/SKILL.md): 23 structured AST navigation tools across 11 languages via MCP.
-5. [**`serena-lsp`**](file:///home/macpaul/coding-index-for-llm/skills/serena-lsp/SKILL.md): Compiler-grade semantic refactoring, find references, and diagnostics for 40+ languages.
-6. [**`scip-code-graph`**](file:///home/macpaul/coding-index-for-llm/skills/scip-code-graph/SKILL.md): Protobuf code graph generation and sub-millisecond lookups via `scip-search`.
-7. [**`language-lsp-tools`**](file:///home/macpaul/coding-index-for-llm/skills/language-lsp-tools/SKILL.md): Language-specific deep indexing runbook (Pyright, clangd, rust-analyzer, gopls, vtsls).
+### TokToken Command Suite
+1. [**`toktoken-index`**](file:///home/macpaul/llm-codeindex/skills/toktoken-index/SKILL.md): Lifecycle management and indexing engine for TokToken (`index:create`, `index:update`, `index:file`, `index:github`, `codebase:detect`, `stats`, `projects:list`, `cache:clear`, `repos:list/remove/clear`, `serve`).
+2. [**`toktoken-symbol-search`**](file:///home/macpaul/llm-codeindex/skills/toktoken-symbol-search/SKILL.md): Surgical symbol and full-text code retrieval via SQLite FTS5 (`search:symbols`, `search:text`, `search:cooccurrence`, `search:similar`, `suggest`) with strict `--token-budget` controls.
+3. [**`toktoken-call-graph`**](file:///home/macpaul/llm-codeindex/skills/toktoken-call-graph/SKILL.md): Call hierarchy, reference tracking, file importers, and dead code detection (`find:callers`, `find:references`, `find:importers`, `find:dead --exclude-tests`).
+4. [**`toktoken-architecture-inspector`**](file:///home/macpaul/llm-codeindex/skills/toktoken-architecture-inspector/SKILL.md): Deep structural diagnostics, all-in-one symbol context bundles, and refactoring impact (`inspect:bundle`, `inspect:blast`, `inspect:cycles`, `inspect:dependencies`, `inspect:hierarchy`, `inspect:outline`, `inspect:tree`, `inspect:symbol`, `inspect:file`).
+
+### Multi-Tool & Protocol Skills
+5. [**`code-indexing-advisor`**](file:///home/macpaul/llm-codeindex/skills/code-indexing-advisor/SKILL.md): Automatically analyzes project structure, detects languages, and recommends optimal 3-tier indexing.
+6. [**`repomix-packer`**](file:///home/macpaul/llm-codeindex/skills/repomix-packer/SKILL.md): Tree-sitter AST signature compression (`--compress`) cutting context by 60%–90%.
+7. [**`codetree-navigator`**](file:///home/macpaul/llm-codeindex/skills/codetree-navigator/SKILL.md): 23 structured AST navigation tools across 11 languages via MCP.
+8. [**`serena-lsp`**](file:///home/macpaul/llm-codeindex/skills/serena-lsp/SKILL.md): Compiler-grade semantic refactoring, find references, and diagnostics for 40+ languages.
+9. [**`scip-code-graph`**](file:///home/macpaul/llm-codeindex/skills/scip-code-graph/SKILL.md): Protobuf code graph generation and sub-millisecond lookups via `scip-search`.
+10. [**`language-lsp-tools`**](file:///home/macpaul/llm-codeindex/skills/language-lsp-tools/SKILL.md): Language-specific deep indexing runbook (Pyright, clangd, rust-analyzer, gopls, vtsls).
  
 ---
 
 ## 📄 License
 
-This project is licensed under the terms of the [GNU Affero General Public License v3.0 (AGPL-3.0)](file:///home/macpaul/coding-index-for-llm/LICENSE).
+This project is licensed under the terms of the [GNU Affero General Public License v3.0 (AGPL-3.0)](file:///home/macpaul/llm-codeindex/LICENSE).
