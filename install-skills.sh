@@ -57,6 +57,18 @@ if [[ -d "${HOME}/.claude" ]]; then
     done
 fi
 
+# 4. Install to Global Agents config (~/.agents/skills for Codex / OpenCode)
+GLOBAL_AGENTS_SKILLS="${HOME}/.agents/skills"
+if mkdir -p "${GLOBAL_AGENTS_SKILLS}" 2>/dev/null; then
+    for skill_dir in "${SOURCE_SKILLS}"/*; do
+        if [[ -d "${skill_dir}" ]]; then
+            skill_name="$(basename "${skill_dir}")"
+            echo -e "${CYAN}[Global Agents]${NC} Linking ${skill_name} -> ${GLOBAL_AGENTS_SKILLS}/${skill_name}"
+            ln -sfn "${skill_dir}" "${GLOBAL_AGENTS_SKILLS}/${skill_name}"
+        fi
+    done
+fi
+
 # Ensure all scripts inside skills are executable
 find "${SOURCE_SKILLS}" -name "*.sh" -exec chmod +x {} +
 
