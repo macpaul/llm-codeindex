@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 # ==============================================================================
-# run_toktoken.sh
-# Helper script to initialize and query TokToken on any project
+# run_toktoken.sh - TokToken Lifecycle & Indexing Helper
 # ==============================================================================
 
 set -euo pipefail
@@ -11,54 +10,69 @@ shift || true
 
 if ! command -v toktoken >/dev/null 2>&1; then
     echo "[ERROR] 'toktoken' is not found in PATH."
-    echo "Run './deploy-indexing-tools.sh' or './install-indexing-tools-user.sh' to install it."
     exit 1
 fi
 
 case "${ACTION}" in
-    index)
-        TARGET_DIR="${1:-.}"
-        echo "[TokToken] Creating project index for: ${TARGET_DIR}"
-        toktoken index:create "${TARGET_DIR}"
+    detect)
+        TARGET="${1:-.}"
+        toktoken codebase:detect "${TARGET}"
         ;;
-    search)
-        QUERY="${1:-}"
-        if [[ -z "${QUERY}" ]]; then
-            echo "Usage: $0 search <symbol_name>"
-            exit 1
-        fi
-        echo "[TokToken] Searching for symbol: ${QUERY}"
-        toktoken search:symbols "${QUERY}" -ck class,method,function,struct,interface
+    create|index)
+        TARGET="${1:-.}"
+        echo "[TokToken] Creating project index for: ${TARGET}"
+        toktoken index:create "${TARGET}"
         ;;
-    inspect)
-        SYMBOL_ID="${1:-}"
-        if [[ -z "${SYMBOL_ID}" ]]; then
-            echo "Usage: $0 inspect <symbol_id>"
-            exit 1
-        fi
-        echo "[TokToken] Inspecting symbol: ${SYMBOL_ID}"
-        toktoken inspect:symbol "${SYMBOL_ID}"
+    update)
+        TARGET="${1:-.}"
+        echo "[TokToken] Updating project index for: ${TARGET}"
+        toktoken index:update "${TARGET}"
         ;;
-    outline)
+    file)
         FILE_PATH="${1:-}"
         if [[ -z "${FILE_PATH}" ]]; then
-            echo "Usage: $0 outline <file_path>"
+            echo "Usage: $0 file <file_path>"
             exit 1
         fi
-        echo "[TokToken] Inspecting outline for: ${FILE_PATH}"
-        toktoken inspect:outline "${FILE_PATH}"
+        toktoken index:file "${FILE_PATH}"
         ;;
-    callers)
-        SYMBOL_ID="${1:-}"
-        toktoken find:callers "${SYMBOL_ID}"
+    github)
+        REPO="${1:-}"
+        if [[ -z "${REPO}" ]]; then
+            echo "Usage: $0 github <owner/repo>"
+            exit 1
+        fi
+        echo "[TokToken] Cloning and indexing GitHub repository: ${REPO}"
+        toktoken index:github "${REPO}"
+        ;;
+    stats)
+        toktoken stats
+        ;;
+    projects)
+        toktoken projects:list
+        ;;
+    repos)
+        toktoken repos:list
+        ;;
+    clear)
+        toktoken cache:clear
+        ;;
+    serve)
+        echo "[TokToken] Starting MCP server on stdio..."
+        exec toktoken serve
         ;;
     *)
-        echo "TokToken Helper Script"
+        echo "TokToken Lifecycle Helper Script"
         echo "Usage:"
-        echo "  $0 index [path]            - Create index for project"
-        echo "  $0 search <query>          - Search symbols (functions, classes)"
-        echo "  $0 inspect <symbol_id>     - Retrieve full code of symbol"
-        echo "  $0 outline <file_path>     - View symbol hierarchy of a file"
-        echo "  $0 callers <symbol_id>     - Find callers across the codebase"
+        echo "  $0 detect [path]        - Detect if path is a codebase and index status"
+        echo "  $0 create [path]        - Create project index"
+        echo "  $0 update [path]        - Incrementally update index"
+        echo "  $0 file <file>          - Reindex a single file"
+        echo "  $0 github <owner/repo>  - Clone and index a GitHub repository"
+        echo "  $0 stats                - Show index statistics"
+        echo "  $0 projects             - List all indexed projects"
+        echo "  $0 repos                - List cloned GitHub repositories"
+        echo "  $0 clear                - Clear index cache"
+        echo "  $0 serve                - Start MCP stdio server"
         ;;
 esac
