@@ -109,6 +109,28 @@ toktoken serve
   * **Always pass `-c`**: Enforce compact output (`toktoken search:symbols "..." -c -l 5`).
   * **Result**: Achieves **0.66x of traditional grep's total token cost** (-34% savings over expert grep, -84% savings over naive grep).
 
+## Agent Steering Rules: Unindexed Files & Whole File Reads
+
+### 1. Mandatory Pre-Indexing for Unindexed or Modified Files (`index:file`)
+* **When an agent creates, modifies, or encounters an unindexed file**:
+  * **Always run `toktoken index:file <path/to/file>` first** before searching, inspecting symbols, or tracing callers in that file.
+  * Querying unindexed files without running `index:file` leads to failed searches, missing symbols, or stale offset lookups.
+  * Example:
+    ```bash
+    # Index newly added or edited driver before inspection:
+    toktoken index:file drivers/dfu/dfu_ufs.c
+    toktoken inspect:symbol "drivers/dfu/dfu_ufs.c::dfu_fill_entity_ufs#function" -c
+    ```
+* **After git operations or batch edits**:
+  * Run `toktoken index:update` to synchronize the SQLite FTS5 database across all modified files in milliseconds.
+
+### 2. Strictly Prohibit Whole File Reads — Steer to `inspect:symbol`
+* **Anti-Pattern**: Agents should **NEVER** run `cat`, `read_file`, or unbounded line dumps on files > 100 lines just to inspect a function, class, or struct. Reading full 1,000+ line C headers consumes 8,000–10,000 tokens per call and compounds quadratically.
+* **The Steering Formula**:
+  * If symbol name is known: `toktoken inspect:symbol "<path>::<symbol>" -c` (costs ~100 tokens, 98.9% savings).
+  * If symbol name is unknown: `toktoken inspect:outline <path> -c` (costs ~100 tokens to view symbol table), then inspect the target symbol.
+  * If specific lines are needed: `toktoken inspect:file <path> --lines <start>-<end> -c`.
+
 ## Performance & Token Economy
 * **Index Speed**: 10,000 files parsed in ~1–2 seconds. Linux kernel (7.4M symbols) in ~170s.
 * **Storage**: Completely non-invasive; zero files created in project workspace.

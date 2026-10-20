@@ -258,3 +258,20 @@ On cutting-edge Ubuntu distributions (e.g., Ubuntu 26.04) running **Python 3.14+
   2. `gfortran`, `libopenblas-dev`, and `liblapack-dev` are also included in Ubuntu `apt` packages should local compilation of scientific extensions be required.
   3. Python tools are decoupled during installation so a build failure in an optional tool like `aider-chat` does not prevent `serena`, `codetree`, or `pylsp` from being installed and symlinked.
 
+---
+
+## 10. Autonomous Agent Lifecycle & Steering Best Practices
+
+### 10.1 Handling Unindexed & Modified Files
+* **Rule**: When an agent encounters, creates, or edits a file, **always run `toktoken index:file <file_path>` first** before searching or inspecting symbols.
+* **Batch Operations**: Run `toktoken index:update` to synchronize the SQLite FTS5 database in milliseconds after git pulls or multi-file edits.
+* **Why**: Querying unindexed or stale files causes missed symbol hits or invalid line range lookups.
+
+### 10.2 Strict Prohibition on Whole File Reads — Steer to `inspect:symbol`
+* **Rule**: Never allow agents to execute whole file dumps (`cat`, `read_file`, `head/tail` > 100 lines) to find struct definitions or API signatures.
+* **Steering Flow**:
+  1. If symbol is known: `toktoken inspect:symbol "<file_path>::<symbol_name>" -c` (costs ~100 tokens vs 10,000 tokens, 98.9% savings).
+  2. If symbol is unknown: `toktoken inspect:outline <file_path> -c` (costs ~100 tokens to view symbol table), then call `inspect:symbol`.
+  3. For targeted slices: `toktoken inspect:file <file_path> --lines <start>-<end> -c`.
+
+

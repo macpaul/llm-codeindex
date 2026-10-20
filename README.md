@@ -81,6 +81,8 @@ If an agent registers 20+ fine-grained MCP tools, the schema alone injects **+46
 2. **Mandatory `--compact` (`-c`) Flag**: Always pass `-c` to all `toktoken` invocations in agent loops to strip indentation and whitespace, cutting JSON formatting tokens by 45%.
 3. **Mandatory Result Limits (`-l 5` or `-l 10`)**: Unbounded queries return 50 symbols. In multi-turn tasks, 50 symbols ingested in Turn 1 costs 5x more because of context compounding on every subsequent turn.
 4. **One-Shot Symbol Targeting (`inspect:symbol`)**: `grep` requires 2 turns (`grep` line number -> `sed` line range). `toktoken inspect:symbol` extracts the complete struct/function body in **1 turn**, saving an entire round-trip and cutting quadratic context growth.
+5. **Always Index Unindexed or Modified Files First (`index:file`)**: When an agent creates, edits, or encounters an unindexed file, **always run `toktoken index:file <file_path>` first** before searching or inspecting symbols to guarantee fresh, compiler-accurate index entries.
+6. **Strict Prohibition on Whole File Reads — Steer to `inspect:symbol`**: Never dump whole files (>100 lines) via `cat` or `read_file` to locate struct definitions or API interfaces. Steer agents directly to `toktoken inspect:symbol` (98.9% token reduction), `toktoken inspect:outline` (to view symbol lists in ~100 tokens), or `toktoken inspect:file --lines`.
 
 ---
 

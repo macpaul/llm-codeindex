@@ -99,5 +99,11 @@ toktoken inspect:tree -d 2
 
 ## Token Economy Best Practices for Autonomous Agents
 1. **Prefer `inspect:symbol` over `inspect:bundle` or `inspect:outline`**: If you only need to view or edit a single function or struct, `inspect:symbol` returns 50-200 tokens. `inspect:bundle` returns imports and outlines (500-1,500 tokens). Over multiple turns, that extra context compounds.
-2. **Never Dump Full Header Files**: In massive subsystem headers (e.g., `include/usb.h`, `include/efi_loader.h`), reading the file costs 9,000+ tokens. `inspect:symbol` isolates the target in **107 tokens** (a **98.9% token reduction**).
-3. **Always Pass `-c` (`--compact`)**: Strips formatting spaces from JSON output to prevent token bloating.
+2. **Strict Prohibition on Whole File Reads — Steer to `inspect:symbol`**:
+   - In massive subsystem headers (e.g., `include/usb.h`, `include/efi_loader.h`), reading the file via `cat` or `read_file` costs 9,000+ tokens.
+   - `inspect:symbol` isolates the target in **107 tokens** (a **98.9% token reduction**).
+   - If the exact symbol name is unknown, run `toktoken inspect:outline <path> -c` (~100 tokens) to inspect the symbol outline first, then call `inspect:symbol`.
+3. **Always Run `index:file` on Unindexed or Modified Files First**:
+   - If a target file was just created, modified, or has not yet been indexed by TokToken, **always execute `toktoken index:file <path>` first** before calling `inspect:symbol` or `inspect:outline`.
+   - This ensures Tree-sitter and SQLite symbol tables have compiler-accurate line ranges and definitions.
+4. **Always Pass `-c` (`--compact`)**: Strips formatting spaces and indentation from JSON output to prevent token bloating across multi-turn histories.

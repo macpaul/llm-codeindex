@@ -85,3 +85,5 @@ toktoken suggest -c
 3. **Pre-Filter by Path (`--filter <glob>`)**: Always scope searches using `--filter` (e.g. `--filter 'drivers/usb/core/*'`) to prune vendor-specific noise inside SQLite before tokens enter the context window.
 4. **Combine `-k` (`--kind`)**: Eliminate noisy variables and chapters when looking for classes or functions (`-k function,class,struct`).
 5. **Use `--token-budget`**: Constrain outputs to strict ceiling limits (e.g. `--token-budget 400`).
+6. **Always Index Unindexed or Modified Files First (`index:file`)**: When files are newly created or modified during coding, **always run `toktoken index:file <path>` first** before searching or inspecting symbols, ensuring search hits are never stale.
+7. **Steer Away from Whole File Reads**: Once a symbol is located via `search:symbols`, never dump or cat the whole file. Steer directly to `toktoken inspect:symbol "<path>::<symbol>" -c` to extract the definition in ~100 tokens.
