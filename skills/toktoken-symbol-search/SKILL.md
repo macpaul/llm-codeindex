@@ -18,67 +18,70 @@ TokToken provides lightning-fast symbol-level retrieval backed by SQLite FTS5 an
 ## Search CLI Commands
 
 ### 1. Symbol Search (`search:symbols`)
-Search symbols by name with relevance scoring and centrality ranking:
+Search symbols by name with relevance scoring and centrality ranking (always use `-c` and `-l` in agent workflows):
 ```bash
-# Basic symbol search (compact output)
-toktoken search:symbols "auth_verify" -c
+# Basic symbol search (compact output, top 5 results)
+toktoken search:symbols "auth_verify" -c -l 5
 
 # Filter by symbol kind (function, class, struct, method, interface)
-toktoken search:symbols "UserSession" -k class,struct
+toktoken search:symbols "UserSession" -k class,struct -c -l 5
 
-# Filter by language
-toktoken search:symbols "connect" -L go -k function
+# Filter by language and path scope
+toktoken search:symbols "connect" -L go -k function --filter 'pkg/net/*' -c
 
 # Enforce strict LLM token budget ceiling (e.g. max 500 tokens)
-toktoken search:symbols "database" --token-budget 500
+toktoken search:symbols "database" --token-budget 500 -c
 
 # Control output detail level (compact, standard, full)
-toktoken search:symbols "handler" --detail compact
+toktoken search:symbols "handler" --detail compact -c -l 5
 
 # Scope search strictly to dependencies imported by a specific file
-toktoken search:symbols "config" --scope-imports-of src/server.go
+toktoken search:symbols "config" --scope-imports-of src/server.go -c
 
 # Scope search to files that import a specific file
-toktoken search:symbols "logger" --scope-importers-of src/logging.h
+toktoken search:symbols "logger" --scope-importers-of src/logging.h -c
 
-# Count matching symbols only
+# Count matching symbols only (0 tokens of payload)
 toktoken search:symbols "parse" -n
 ```
 
 ### 2. Full-Text Search (`search:text`)
 Search source text across all indexed files:
 ```bash
-# Text search grouped by file with line context
-toktoken search:text "FIXME" -g file -C 2
+# Text search grouped by file with line context (compact, limit 10)
+toktoken search:text "FIXME" -g file -C 2 -c -l 10
 
-# Regex search (case-sensitive)
-toktoken search:text "err := .*\.Close\(\)" -r -s
+# Regex search (case-sensitive) with path filtering
+toktoken search:text "err := .*\.Close\(\)" -r -s --filter 'internal/*' -c -l 5
 
-# Limit search results
-toktoken search:text "API_KEY" -l 10
+# Limit search results to protect agent context window
+toktoken search:text "API_KEY" -c -l 5
 ```
 
 ### 3. Symbol Co-occurrence (`search:cooccurrence`)
 Find symbols that frequently co-occur in the same file to reveal module coupling:
 ```bash
-# Find co-occurrences between two symbols
-toktoken search:cooccurrence "verify_token,decode_jwt"
+# Find co-occurrences between two symbols (compact)
+toktoken search:cooccurrence "verify_token,decode_jwt" -c
 ```
 
 ### 4. Similar Symbol Discovery (`search:similar`)
 Find symbols structurally or semantically similar to a known symbol ID:
 ```bash
-toktoken search:similar "src/auth/jwt.go::VerifyToken#function"
+toktoken search:similar "src/auth/jwt.go::VerifyToken#function" -c -l 5
 ```
 
 ### 5. Exploration Suggestions (`suggest`)
 Discover high-priority architectural keywords and suggested query prompts:
 ```bash
-toktoken suggest
+toktoken suggest -c
 # Returns top keywords, symbol kind distributions, and example queries
 ```
 
-## Token Economy Best Practices
-1. **Always use `-c` (`--compact`)** when querying in automated agent loops to receive concise JSON.
-2. **Combine `-k` (`--kind`)** to eliminate irrelevant variable or chapter definitions when hunting for functions or classes.
-3. **Use `--token-budget`** when injecting search results directly into prompting context to prevent context window overflow.
+## Token Economy Best Practices for Autonomous Agents
+
+1. **Mandatory `-c` (`--compact`)**: Never execute `toktoken` without `-c` in agent workflows. Uncompacted JSON contains 45% whitespace and indentation overhead that is repeatedly re-ingested across multi-turn history.
+2. **Mandatory `-l 5` or `-l 10` (Result Limits)**: Unbounded queries return 50 symbols. In multi-turn tasks, 50 symbols ingested in Turn 1 costs 5x more because of context compounding on every subsequent turn.
+3. **Pre-Filter by Path (`--filter <glob>`)**: Always scope searches using `--filter` (e.g. `--filter 'drivers/usb/core/*'`) to prune vendor-specific noise inside SQLite before tokens enter the context window.
+4. **Combine `-k` (`--kind`)**: Eliminate noisy variables and chapters when looking for classes or functions (`-k function,class,struct`).
+5. **Use `--token-budget`**: Constrain outputs to strict ceiling limits (e.g. `--token-budget 400`).

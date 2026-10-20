@@ -18,77 +18,86 @@ TokToken provides advanced architectural diagnostics and surgical inspection too
 
 ## Inspection CLI Commands
 
-### 1. Symbol Context Bundle (`inspect:bundle`)
-The ultimate context tool for AI agents. Extracts the target symbol implementation, all imports used by the file, and the parent file outline in one token-optimized JSON object:
+### 1. Exact Symbol Code Extraction (`inspect:symbol`) - The Premier Agent Tool
+Extract the exact, isolated implementation of a function, struct, class, or method in a single shot (always use `-c`):
 ```bash
-# Retrieve full context bundle for a target symbol
-toktoken inspect:bundle "src/auth/jwt.go::VerifyToken#function"
+# Inspect only the exact implementation of a symbol (compact JSON)
+toktoken inspect:symbol "src/utils.go::HashPassword#function" -c
 
-# Include all callers directly inside the context bundle
-toktoken inspect:bundle "src/auth/jwt.go::VerifyToken#function" --include-callers
+# Extract complex C struct definition from headers in ~100 tokens (avoids 10k token cat disaster)
+toktoken inspect:symbol "include/efi_loader.h::efi_capsule_update_info#class" -c
+```
+> **Agent Efficiency Note**: Traditional `grep` requires 2 turns (Turn 1: grep line number -> Turn 2: sed line range). `toktoken inspect:symbol` extracts the complete struct/function body in **1 turn**, saving an entire round-trip and preventing quadratic history compounding!
+
+### 2. Surgical Line Slicing (`inspect:file`)
+Read targeted line slices instead of whole files:
+```bash
+# Read specific line ranges from a configuration or file
+toktoken inspect:file configs/genio_720_evk_ufs_defconfig --lines 125-145 -c
 ```
 
-### 2. Blast Radius Analysis (`inspect:blast`)
+### 3. Symbol Context Bundle (`inspect:bundle`)
+Extracts the target symbol implementation, all imports used by the file, and the parent file outline in one compact call:
+```bash
+# Retrieve full context bundle for a target symbol (compact)
+toktoken inspect:bundle "src/auth/jwt.go::VerifyToken#function" -c
+
+# Include all callers directly inside the context bundle
+toktoken inspect:bundle "src/auth/jwt.go::VerifyToken#function" --include-callers -c
+```
+
+### 4. Blast Radius Analysis (`inspect:blast`)
 Forecast the ripple effect of changing or deleting a symbol:
 ```bash
 # Analyze impact blast radius of a symbol
-toktoken inspect:blast "src/db/pool.go::GetConnection#function"
+toktoken inspect:blast "src/db/pool.go::GetConnection#function" -c
 
 # Limit blast radius traversal depth (e.g. depth 2)
-toktoken inspect:blast "src/core/config.h::GlobalConfig#struct" -d 2
+toktoken inspect:blast "src/core/config.h::GlobalConfig#struct" -d 2 -c
 ```
 
-### 3. Circular Import Cycle Detection (`inspect:cycles`)
+### 5. Circular Import Cycle Detection (`inspect:cycles`)
 Detect problematic circular dependencies across modules:
 ```bash
-# Detect all import cycles in the repository
-toktoken inspect:cycles
+# Detect all import cycles in the repository (compact)
+toktoken inspect:cycles -c
 
 # Focus strictly on cross-directory import cycles
-toktoken inspect:cycles --cross-dir
+toktoken inspect:cycles --cross-dir -c
 
 # Filter cycles by minimum path length
-toktoken inspect:cycles --min-length 3
+toktoken inspect:cycles --min-length 3 -c
 ```
 
-### 4. Transitive Dependency Graph (`inspect:dependencies`)
+### 6. Transitive Dependency Graph (`inspect:dependencies`)
 Trace the complete tree of modules imported by a file:
 ```bash
-# Trace transitive dependencies for a file
-toktoken inspect:dependencies src/main.go
+# Trace transitive dependencies for a file (compact)
+toktoken inspect:dependencies src/main.go -c
 ```
 
-### 5. Symbol & Class Hierarchy (`inspect:hierarchy`)
+### 7. Symbol & Class Hierarchy (`inspect:hierarchy`)
 Examine class and struct hierarchies, nested functions, and methods:
 ```bash
-# Show structural hierarchy within a module
-toktoken inspect:hierarchy src/models/user.go
+# Show structural hierarchy within a module (compact)
+toktoken inspect:hierarchy src/models/user.go -c
 ```
 
-### 6. File Outline (`inspect:outline`)
+### 8. File Outline (`inspect:outline`)
 Inspect all symbols declared in a file without reading full lines of implementation:
 ```bash
-# Extract high-level symbol outline
-toktoken inspect:outline src/server/http.go
+# Extract high-level symbol outline (compact)
+toktoken inspect:outline src/server/http.go -c
 ```
 
-### 7. File Tree Navigation (`inspect:tree`)
+### 9. File Tree Navigation (`inspect:tree`)
 Inspect indexed repository tree with depth controls:
 ```bash
 # View top 2 levels of indexed repository tree
 toktoken inspect:tree -d 2
 ```
 
-### 8. Exact Symbol Code & Line Slicing (`inspect:symbol` & `inspect:file`)
-```bash
-# Inspect only the exact implementation of a symbol
-toktoken inspect:symbol "src/utils.go::HashPassword#function"
-
-# Read specific line ranges from a file
-toktoken inspect:file src/main.go --lines 20-50
-```
-
-## Token Economy Best Practices
-1. **Prefer `inspect:bundle` over reading full files**: In a 2,000-line file, inspecting a 30-line function with `inspect:bundle` costs ~300 tokens, whereas reading the full file costs ~8,000 tokens (**96% token savings**).
-2. **Always check `inspect:blast` before large refactors**: Avoid breaking downstream consumers by inspecting the blast radius depth.
-3. **Use `inspect:outline` first**: Outline a file first to discover exact symbol IDs, then use `inspect:symbol` on the target.
+## Token Economy Best Practices for Autonomous Agents
+1. **Prefer `inspect:symbol` over `inspect:bundle` or `inspect:outline`**: If you only need to view or edit a single function or struct, `inspect:symbol` returns 50-200 tokens. `inspect:bundle` returns imports and outlines (500-1,500 tokens). Over multiple turns, that extra context compounds.
+2. **Never Dump Full Header Files**: In massive subsystem headers (e.g., `include/usb.h`, `include/efi_loader.h`), reading the file costs 9,000+ tokens. `inspect:symbol` isolates the target in **107 tokens** (a **98.9% token reduction**).
+3. **Always Pass `-c` (`--compact`)**: Strips formatting spaces from JSON output to prevent token bloating.

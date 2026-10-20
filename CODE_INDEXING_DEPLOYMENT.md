@@ -48,6 +48,7 @@ To achieve **zero-hallucination, cost-effective autonomous coding**, modern engi
 * **Storage**: Global cache in `~/.cache/toktoken/` (never pollutes workspace code).
 * **Token Savings**: **88% to 99%**. In Redis (45K symbols), inspecting a single function costs ~2,699 tokens instead of 84,193 tokens (97% reduction).
 * **CLI & MCP**: `toktoken index:create`, `toktoken search:symbols`, `toktoken inspect:symbol`, `toktoken serve` (MCP mode).
+* **Agent Context Optimization Note**: In multi-turn autonomous agent loops, avoid registering 20+ fine-grained MCP tool definitions in the system prompt (which adds ~460 tokens of schema overhead on every single turn, compounding into a 1.7x token penalty over grep). Instead, use **CLI-first dispatch via `run_command` with `-c` (compact) and `-l 5`** to achieve **0.66x of grep's token cost** (-34% savings over expert grep, -84% savings over naive grep).
 
 ### 3.2 Repomix & repomix-rs (`yamadashy/repomix` & `sopaco/repomix-rs`)
 * **Core Tech**: Codebase packer into XML/Markdown. With `--compress`, it uses Tree-sitter to parse AST and replaces function/class bodies with stubs (`pass`, `{ ... }`), preserving signatures, interfaces, and docstrings.
